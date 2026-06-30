@@ -4,15 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Baumk&uuml;hlung CH 3D &ndash; swissBUILDINGS3D</title>
-<script>window.CESIUM_BASE_URL='https://unpkg.com/cesium@1/Build/Cesium/';</script>
-<link href="https://unpkg.com/cesium@1/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-<script src="https://unpkg.com/cesium@1/Build/Cesium/Cesium.js"></script>
+<script>window.CESIUM_BASE_URL='https://unpkg.com/cesium@1.142.0/Build/Cesium/';</script>
+<link href="https://unpkg.com/cesium@1.142.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script src="https://unpkg.com/cesium@1.142.0/Build/Cesium/Cesium.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 <style>
-  :root{--bg:#eceff3;--panel:#ffffff;--panel2:#f4f6f9;--line:#dde2e8;
-    --txt:#1f2733;--muted:#5d6b7a;--accent:#2e7d32;--accent-d:#1b5e20;--accent2:#1565c0;--danger:#c62828;
-    --elev1:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
-    --elev2:0 4px 12px rgba(16,24,40,.12);--elev3:0 10px 30px rgba(16,24,40,.20);}
+  :root{
+    --bg:#f3f6ee;                /* Material-3 Surface (leicht grünstichig) */
+    --panel:#ffffff;
+    --panel2:#e6efe1;            /* surface-variant (tonal) */
+    --line:#c4ccbd;              /* outline-variant */
+    --txt:#191d16; --muted:#43483e;
+    --accent:#2e7d32; --accent-d:#1b5e20; --on-accent:#ffffff;
+    --accent-c:#b8f0ba; --on-accent-c:#04270a;   /* primary container */
+    --accent2:#1565c0; --danger:#ba1a1a;
+    --r-sm:12px; --r:16px; --r-lg:24px; --pill:999px;
+    --elev1:0 1px 2px rgba(20,45,20,.08);
+    --elev2:0 2px 8px rgba(20,45,20,.10);
+    --elev3:0 8px 26px rgba(20,45,20,.16);}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
     font-family:Roboto,system-ui,Segoe UI,Arial,sans-serif;font-size:14px;overflow:hidden}
@@ -32,7 +41,7 @@
   .stepchip .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     background:var(--panel2);border:2px solid var(--line);color:var(--muted);font-weight:600;font-size:13px;transition:.15s}
   .stepchip.active .dot{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px rgba(46,125,50,.16)}
-  .stepchip.done .dot{background:#e6f4ea;border-color:var(--accent);color:var(--accent)}
+  .stepchip.done .dot{background:var(--accent-c);border-color:var(--accent);color:var(--on-accent-c)}
   .stepchip .lbl{font-size:11px;color:var(--muted)}
   .stepchip.active .lbl{color:var(--accent);font-weight:600}
   /* Step-Inhalt */
@@ -41,22 +50,22 @@
   @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1}}
   .wstep>h2{font-size:16px;margin:0 0 4px;font-weight:600;color:var(--txt)}
   .wstep .lead{color:var(--muted);font-size:12.5px;margin:0 0 14px;line-height:1.5}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--elev1)}
-  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:500}
-  input[type=text],input[type=date]{width:100%;padding:11px 12px;background:#fff;border:1px solid var(--line);color:var(--txt);border-radius:10px;font-size:14px}
-  input[type=text]:focus,input[type=date]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,125,50,.12)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin-bottom:14px;box-shadow:none}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px;font-weight:600;letter-spacing:.2px}
+  input[type=text],input[type=date]{width:100%;padding:12px 14px;background:var(--panel2);border:1px solid transparent;color:var(--txt);border-radius:var(--r-sm);font-size:14px}
+  input[type=text]:focus,input[type=date]:focus{outline:none;background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,125,50,.16)}
   input[type=range]{width:100%;accent-color:var(--accent)}
   .row{display:flex;gap:8px}.row>*{flex:1}
   .val{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600}
-  button{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--txt);padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;transition:.15s;box-shadow:var(--elev1)}
-  button:hover{background:var(--panel2);box-shadow:var(--elev2)}
-  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-  button.primary:hover{background:var(--accent-d)}
-  button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-  .seg{display:flex;flex-wrap:wrap;border-radius:10px;overflow:hidden;box-shadow:var(--elev1)}
-  .seg button{flex:1;border-radius:0;min-width:0;box-shadow:none;border-left:none}
-  .seg button:first-child{border-left:1px solid var(--line)}
-  .seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button{cursor:pointer;border:1px solid transparent;background:var(--panel2);color:var(--txt);padding:11px 20px;border-radius:var(--pill);font-size:14px;font-weight:600;letter-spacing:.1px;transition:.15s;box-shadow:none}
+  button:hover{background:#d6e2cf;box-shadow:var(--elev1)}
+  button.primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  button.primary:hover{background:var(--accent-d);box-shadow:var(--elev2)}
+  button:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+  .seg{display:flex;flex-wrap:wrap;border-radius:var(--pill);overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+  .seg button{flex:1;border-radius:0;min-width:0;box-shadow:none;border:none;background:transparent;color:var(--txt);font-weight:600}
+  .seg button:hover{background:var(--panel2)}
+  .seg button.active{background:var(--accent-c);color:var(--on-accent-c)}
   /* Navigation */
   #wnav{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 18px 14px;
     background:linear-gradient(180deg,rgba(236,239,243,0),var(--bg) 35%)}
@@ -125,7 +134,7 @@
   #navCtrl{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:7;display:none;
     flex-direction:column;gap:6px;background:rgba(255,255,255,.97);border:1px solid var(--line);
     border-radius:12px;padding:7px;box-shadow:var(--elev3)}
-  #navCtrl button{width:38px;height:38px;padding:0;border-radius:9px;font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:none}
+  #navCtrl button{width:40px;height:40px;padding:0;border-radius:var(--pill);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:none}
   #navCtrl .nsep{height:1px;background:var(--line);margin:2px 3px}
   #navCtrl #navHelp{color:var(--accent2);font-weight:700}
   #mouseHelp{position:absolute;right:62px;top:50%;transform:translateY(-50%);z-index:8;display:none;width:230px;
@@ -177,12 +186,13 @@
             <button data-v="intl">International</button>
           </div>
           <div id="intlBox" style="display:none">
-            <div class="hint" style="margin-top:10px;color:#8a5a00;background:#fff6e0;border:1px solid #f0d68a;border-radius:8px;padding:9px 11px">
-              &#9888; Ausserhalb der Schweiz stehen 3D-Geb&auml;ude nur via <b>OpenStreetMap</b> zur Verf&uuml;gung &ndash; deutlich <b>gr&ouml;ber</b> (Bl&ouml;cke mit H&ouml;he, flache D&auml;cher). Luftbild via Esri, Karte via OSM. F&uuml;r OSM-3D-Geb&auml;ude + Gel&auml;nde einen <b>kostenlosen Cesium-ion-Token</b> eintragen.
+            <div class="hint" style="margin-top:10px;color:#7a5b00;background:#fff6e0;border:1px solid #f0d68a;border-radius:12px;padding:10px 12px">
+              &#9888; Ausserhalb der Schweiz kommen die 3D-Geb&auml;ude von <b>OpenStreetMap</b> &ndash; deutlich <b>gr&ouml;ber</b> (Bl&ouml;cke mit H&ouml;he, flache D&auml;cher), Luftbild via Esri, Karte via OSM. Genauigkeit also geringer als in der Schweiz.
             </div>
-            <label style="margin-top:10px">Cesium-ion-Token <span style="font-weight:400">(optional, f&uuml;r 3D-Geb&auml;ude)</span></label>
-            <input type="text" id="ionToken" placeholder="Token von cesium.com/ion einf&uuml;gen">
-            <div class="hint" style="margin-top:4px">Gratis-Token: <a href="https://cesium.com/ion/tokens" target="_blank" rel="noopener">cesium.com/ion/tokens</a></div>
+            <details style="margin-top:8px">
+              <summary style="cursor:pointer;font-size:12px;color:var(--muted)">Cesium-ion-Token (bereits eingebaut)</summary>
+              <input type="text" id="ionToken" placeholder="Cesium-ion-Token" style="margin-top:6px">
+            </details>
           </div>
         </div>
         <div class="card">
@@ -377,7 +387,9 @@
 /* ===== Globale Zustaende ===== */
 let viewer, buildings=null, terrainReady=false, surfaceMode='ortho';
 let centerFrame=null, center=null;
-let region='ch', ionToken='';                 // 'ch'=swisstopo, 'intl'=global (OSM/Esri, optional Cesium-ion)
+let region='ch';                              // 'ch'=swisstopo, 'intl'=global (OSM/Esri + Cesium-ion)
+// Eingebauter Cesium-ion-Token (für International: OSM-3D-Gebäude + Welt-Gelände). Client-Token, öffentlich sichtbar – ok.
+let ionToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwNTQ2MjMxNi1jODlmLTQ3OWQtODRjMC03NzgzNTQ0NTRlYTciLCJpZCI6NDUwNzA0LCJzdWIiOiJzaW1weCIsImlzcyI6Imh0dHBzOi8vYXBpLmNlc2l1bS5jb20iLCJhdWQiOiJVbnRpdGxlZCIsImlhdCI6MTc4MjgxMzAxNX0.SDc-qGxSdipqmp_cTsLqUlNiMYw9BEz2_fUFpBys4Ok';
 const trees=[];                               // aktive Szenen-Baeume
 let axis=null, drawing=false, drawPts=[];
 let previewEntity=null, previewPts=[], draggingHandle=null, handleA=null, handleB=null;
@@ -405,7 +417,8 @@ function showFatal(html){
 }
 function initCesium(){
   if(typeof Cesium==='undefined'){ showFatal('Die 3D-Bibliothek (Cesium) konnte nicht geladen werden. Bitte Internetverbindung pr&uuml;fen und neu laden.'); return; }
-  Cesium.Ion.defaultAccessToken='';
+  Cesium.Ion.defaultAccessToken=ionToken||'';   // eingebauter Token -> International funktioniert ohne Eingabe
+  { const t=document.getElementById('ionToken'); if(t) t.value=ionToken||''; }
   // WebGL-Verfügbarkeit prüfen -> klare Meldung statt schwarzem Bild (häufig in Chrome/Edge ohne HW-Beschleunigung)
   try{ const tc=document.createElement('canvas');
     if(!(tc.getContext('webgl2')||tc.getContext('webgl')||tc.getContext('experimental-webgl'))){
@@ -563,7 +576,7 @@ function setSurface(mode){
     g.baseColor=Cesium.Color.WHITE;
   } else if(mode==='plan'){
     if(region==='ch') addImg('ch.swisstopo.pixelkarte-farbe','jpeg',18);
-    else addUrlImg('https://tile.openstreetmap.org/{z}/{x}/{y}.png',19,'© OpenStreetMap');
+    else addUrlImg('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',19,'© Esri');   // OSM-Tiles blockten -> Esri-Strassenkarte (tokenlos, zuverlässig)
     g.baseColor=Cesium.Color.WHITE;
   } else { g.baseColor=Cesium.Color.fromCssColorString('#c9cdd0'); }
   document.querySelectorAll('#surfSeg button').forEach(b=>b.classList.toggle('active',b.dataset.v===mode));
