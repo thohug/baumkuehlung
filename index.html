@@ -189,6 +189,11 @@
             <div class="hint" style="margin-top:10px;color:#7a5b00;background:#fff6e0;border:1px solid #f0d68a;border-radius:12px;padding:10px 12px">
               &#9888; Ausserhalb der Schweiz kommen die 3D-Geb&auml;ude von <b>OpenStreetMap</b> &ndash; deutlich <b>gr&ouml;ber</b> (Bl&ouml;cke mit H&ouml;he, flache D&auml;cher), Luftbild &amp; Karte via Esri. Genauigkeit also geringer als in der Schweiz.
             </div>
+            <label style="margin-top:10px">3D-Geb&auml;ude-Quelle</label>
+            <div class="seg" id="intlBldgSeg">
+              <button data-v="cesium" class="active">Cesium&nbsp;OSM</button>
+              <button data-v="esri">Esri&nbsp;OSM</button>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -386,6 +391,8 @@ let centerFrame=null, center=null;
 let region='ch';                              // 'ch'=swisstopo, 'intl'=global (OSM/Esri + Cesium-ion)
 // Eingebauter Cesium-ion-Token (für International: OSM-3D-Gebäude + Welt-Gelände). Client-Token, öffentlich sichtbar – ok.
 let ionToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwNTQ2MjMxNi1jODlmLTQ3OWQtODRjMC03NzgzNTQ0NTRlYTciLCJpZCI6NDUwNzA0LCJzdWIiOiJzaW1weCIsImlzcyI6Imh0dHBzOi8vYXBpLmNlc2l1bS5jb20iLCJhdWQiOiJVbnRpdGxlZCIsImlhdCI6MTc4MjgxMzAxNX0.SDc-qGxSdipqmp_cTsLqUlNiMYw9BEz2_fUFpBys4Ok';
+let intlBuildings='cesium';   // International-Gebäudequelle: 'cesium'=Cesium OSM Buildings, 'esri'=Esri OSM 3D (I3S, tokenlos)
+const ESRI_OSM3D_URL='https://basemaps3d.arcgis.com/arcgis/rest/services/OpenStreetMap3D_Buildings_v1/SceneServer';
 const trees=[];                               // aktive Szenen-Baeume
 let axis=null, drawing=false, drawPts=[];
 let previewEntity=null, previewPts=[], draggingHandle=null, handleA=null, handleB=null;
@@ -532,13 +539,18 @@ async function loadBuildings(){
       const ts=await Cesium.Cesium3DTileset.fromUrl('https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/tileset.json');
       styleBuildingsCH(ts); viewer.scene.primitives.add(ts); buildings=ts;
       status('Globus bereit. Adresse eingeben &amp; <b>Hinfliegen &amp; laden</b>.');
+    } else if(intlBuildings==='esri'){
+      const i3s=await Cesium.I3SDataProvider.fromUrl(ESRI_OSM3D_URL);   // Esri OSM 3D, I3S, tokenlos
+      viewer.scene.primitives.add(i3s); buildings=i3s;
+      try{ (i3s.layers||[]).forEach(l=>{ if(l&&l.tileset) l.tileset.shadows=Cesium.ShadowMode.CAST_ONLY; }); }catch(e){}
+      status('International: <b>Esri</b> OSM-3D-Geb&auml;ude (I3S) geladen &ndash; gr&ouml;ber als CH.');
     } else if(ionToken){
       Cesium.Ion.defaultAccessToken=ionToken;
       const ts=await Cesium.createOsmBuildingsAsync(); ts.shadows=Cesium.ShadowMode.CAST_ONLY;
       viewer.scene.primitives.add(ts); buildings=ts;
-      status('OSM-3D-Geb&auml;ude geladen (gr&ouml;ber als CH). Adresse eingeben &amp; <b>Hinfliegen &amp; laden</b>.');
+      status('International: <b>Cesium</b> OSM-3D-Geb&auml;ude geladen &ndash; gr&ouml;ber als CH.');
     } else {
-      status('International: ohne Cesium-ion-Token <b>keine 3D-Geb&auml;ude</b> (nur Gel&auml;nde/Luftbild). Token oben eintragen f&uuml;r OSM-Geb&auml;ude.');
+      status('International: ohne Cesium-ion-Token keine Cesium-OSM-Geb&auml;ude &ndash; alternativ „Esri OSM" w&auml;hlen.');
     }
   }catch(e){ status('Geb&auml;ude konnten nicht geladen werden (Token g&uuml;ltig?): '+e.message); }
 }
@@ -578,6 +590,9 @@ function setSurface(mode){
 }
 document.querySelectorAll('#surfSeg button').forEach(b=>b.onclick=()=>setSurface(b.dataset.v));
 document.querySelectorAll('#regionSeg button').forEach(b=>b.onclick=()=>applyRegion(b.dataset.v));
+document.querySelectorAll('#intlBldgSeg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#intlBldgSeg button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  intlBuildings=b.dataset.v; if(region==='intl') loadBuildings(); });
 
 /* ===== Zeit / Sonne ===== */
 const dateIn=document.getElementById('dateIn');
@@ -939,6 +954,9 @@ async function buildCorridor(){
 function corridorBBox(){ let eMin=1e9,eMax=-1e9,nMin=1e9,nMax=-1e9; const ce=corridor.ce,cn=corridor.cn,N=corridor.N;
   for(let i=0;i<N;i++){ if(ce[i]<eMin)eMin=ce[i]; if(ce[i]>eMax)eMax=ce[i]; if(cn[i]<nMin)nMin=cn[i]; if(cn[i]>nMax)nMax=cn[i]; }
   return {eMin,eMax,nMin,nMax}; }
+// Gebäude-Treffer quellenunabhängig: swissBUILDINGS3D & Cesium-OSM sind Cesium3DTileset,
+// Esri-OSM (I3S) rendert intern ebenfalls Cesium3DTilesets -> so füttert auch Esri die Heatmap.
+function isBuildingHit(r){ return !!(r && r.object && r.object.primitive instanceof Cesium.Cesium3DTileset); }
 async function waitBuildingsPickable(ms){
   // Probegitter ueber dem Korridor
   const bb=corridorBBox(); let eMin=bb.eMin,eMax=bb.eMax,nMin=bb.nMin,nMax=bb.nMax;
@@ -954,7 +972,7 @@ async function waitBuildingsPickable(ms){
       const nrm=ell.geodeticSurfaceNormal(gC,new Cesium.Cartesian3());
       const hi=Cesium.Cartesian3.add(gC,Cesium.Cartesian3.multiplyByScalar(nrm,260,new Cesium.Cartesian3()),new Cesium.Cartesian3());
       const r=viewer.scene.pickFromRay(new Cesium.Ray(hi,Cesium.Cartesian3.negate(nrm,new Cesium.Cartesian3())));
-      if(r&&r.object&&r.object.primitive===buildings) hits++; }
+      if(isBuildingHit(r)) hits++; }
     if(hits>=need) return true;                                   // genug Dächer pickbar
     if(buildings && buildings.tilesLoaded && hits>=2) return true; // bei geladenem Bereich reichen wenige
     status('<span class="spin"></span>Warte auf Geb&auml;ude-Tiles &hellip; ('+hits+'/'+need+')'); await new Promise(r=>setTimeout(r,350));
@@ -981,7 +999,7 @@ async function buildField(){
     const hi=Cesium.Cartesian3.add(gC,Cesium.Cartesian3.multiplyByScalar(nrm,260,new Cesium.Cartesian3()),new Cesium.Cartesian3());
     const r=viewer.scene.pickFromRay(new Cesium.Ray(hi,Cesium.Cartesian3.negate(nrm,new Cesium.Cartesian3())));
     let oh=0;
-    if(r&&r.object&&r.object.primitive===buildings&&Cesium.defined(r.position)) oh=Math.max(0,Cesium.Cartesian3.distance(gC,r.position));
+    if(isBuildingHit(r)&&Cesium.defined(r.position)) oh=Math.max(0,Cesium.Cartesian3.distance(gC,r.position));
     if(oh>250)oh=0;
     obj[k]=oh; top[k]=gH+oh; if(top[k]>maxTop)maxTop=top[k];
     if((k&1023)===0) await sleep();
@@ -1222,7 +1240,7 @@ function axisLen(){ if(!axis)return 80; const A=toENU(axis.a.lon,axis.a.lat),B=t
 function castFacade(base,dx,dy){
   const dir=Cesium.Cartesian3.normalize(Cesium.Matrix4.multiplyByPointAsVector(centerFrame,new Cesium.Cartesian3(dx,dy,0),new Cesium.Cartesian3()),new Cesium.Cartesian3());
   const r=viewer.scene.pickFromRay(new Cesium.Ray(base,dir));
-  if(r&&r.object&&r.object.primitive===buildings&&Cesium.defined(r.position)) return Cesium.Cartesian3.distance(base,r.position);
+  if(isBuildingHit(r)&&Cesium.defined(r.position)) return Cesium.Cartesian3.distance(base,r.position);
   return null;
 }
 // Achse zwischen die beiden Fassaden zentrieren + parallel ausrichten, Breite messen
